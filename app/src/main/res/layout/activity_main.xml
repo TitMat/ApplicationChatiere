@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/activity_main"
     android:layout_width="match_parent"
@@ -33,7 +31,7 @@
 
 
     <ImageView
-        android:id="@+id/imageView"
+        android:id="@+id/chatiere"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
@@ -43,31 +41,46 @@
         tools:srcCompat="@drawable/chatiere" />
 
     <ImageView
-        android:id="@+id/imageView2"
+        android:id="@+id/meteo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/imageView"
+        android:layout_below="@id/chatiere"
         android:layout_centerInParent="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentRight="true"
+        android:layout_alignParentLeft="false"
+        android:layout_alignParentRight="false"
         android:layout_marginLeft="50dp"
         android:layout_marginRight="50dp"
         android:layout_marginBottom="90dp"
         tools:srcCompat="@drawable/i01d" />
 
     <TextView
-        android:id="@+id/textView"
+        android:id="@+id/positionChat"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignLeft="@id/imageView2"
-        android:layout_below="@id/imageView2"
+        android:layout_above="@id/btnVerrouiller"
         android:layout_centerInParent="true"
         android:layout_marginLeft="50dp"
         android:layout_marginRight="50dp"
-        android:layout_marginBottom="50dp"
+        android:layout_alignLeft="@id/meteo"
         android:layout_alignParentLeft="true"
         android:layout_alignParentRight="true"
-        android:layout_above="@id/btnVerrouiller"/>
+        android:layout_marginBottom="10dp"
+        android:clickable="true" />
+
+    <TextView
+        android:id="@+id/temperature"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/chatiere"
+        android:layout_alignRight="@id/meteo"
+        android:layout_alignParentLeft="false"
+        android:layout_alignParentRight="false"
+        android:layout_centerInParent="true"
+        android:layout_marginLeft="50dp"
+        android:layout_marginTop="14dp"
+        android:layout_marginRight="51dp"
+        android:layout_marginBottom="90dp"
+        tools:srcCompat="@drawable/i01d" />
 
 
 </RelativeLayout>

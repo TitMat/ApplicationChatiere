@@ -30,199 +30,276 @@ public class MainActivity extends AppCompatActivity {
     // Représente l'appareil Bluetooth
     BluetoothAdapter mBluetoothAdapter;
 
-    //
-    BluetoothConnectionService mBluetoothConnection;
-
+    //UUID Arduino
     private static final UUID MY_UUID_INSECURE =
             UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-
     // Nom du composant Bluetooth Arduino
-    private static final String NOM_COMPOSANT_BT_ARDUINO = "DSD TECH HC-05";
+    private static final String NOM_COMPOSANT_BT_ARDUINO = "HC-05";
+    // Gere les threads de communication BT
+    BluetoothConnectionService mBluetoothConnection;
 
     // Code pour verrouiller
     private static final String DEVERROUILLER = "1";
 
     // Code pour déverrouiller
     private static final String VERROUILLER = "0";
+    // on définit une variable descriptiontemps
+    String descriptionTemps;
 
-    Button btnVerrouiller;// on définit un bouton verouiller
-    Button btnDeverrouiller;// on définit un bouton deverouiller
-    String descriptionTemps;// on définit une variable descriptiontemps
-
-// on détruit la connection bluetooth lorsque la connection se termine
+    // on détruit la connection bluetooth lorsque la connection se termine
     @Override
     protected void onDestroy() {
         Log.d(TAG, "onDestroy: called.");
         super.onDestroy();
-        mBluetoothConnection.stop();
+        //mBluetoothConnection.stop();
     }
 
+    // Première méthode appelée lorsque l'application se lance
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // On définit le module BT
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+        // Cette méthode regarde si l'appreil à un module BT
+        // Si non l'application s'arrête
+        // Si oui, si le BT n'est pas activé, il l'est
         enableBT();
-        final ImageView monImage = findViewById(R.id.imageView);
-        final ImageView meteoImage = findViewById(R.id.imageView2);
-        final TextView monText = findViewById(R.id.textView);
-        monImage.setImageResource(R.drawable.chatiere);
+
+
+        // Récupération de l'image qui représente la chatière
+        final ImageView chatiere = findViewById(R.id.chatiere);
+
+        // Récupération de l'image qui représente la météo
+        final ImageView meteoImage = findViewById(R.id.meteo);
+
+        // Récupération du texte qui indique la position du chat
+        final TextView temperature = findViewById(R.id.temperature);
+
+        // Récupération du texte qui indique la position du chat
+        final TextView positionChat = findViewById(R.id.positionChat);
+        positionChat.setText("On ne sait pas où est le chat. On ne connait pas la position de la chatière. Cliquez pour rafraichir SVP !.");
+
+        // on définit un bouton verouiller
+        final Button btnVerrouiller = findViewById(R.id.btnVerrouiller);
+
+        // on définit un bouton deverouiller
+        final Button btnDeverrouiller = findViewById(R.id.btnDeverrouiller);
+
+        // Récupération de l'image qui représente la chatière
+        chatiere.setImageResource(R.drawable.chatiere);
+
+        // Récupération de l'image qui représente la chatière
         meteoImage.setImageResource(R.drawable.i50d);
 
-
+        // On liste les devices appairés
         Set<BluetoothDevice> mesDevices = mBluetoothAdapter.getBondedDevices();
         BluetoothDevice monDevice = null;
+        // Pour chaque Device, on log l'adresse et le nom
         for (BluetoothDevice device : mesDevices) {
             Log.d(TAG, device.getAddress());
             Log.d(TAG, device.getName());
+            // S'il s'agit du nom du composant BT arduino, c'est notre Device
             if (device.getName().equals(NOM_COMPOSANT_BT_ARDUINO)) {
                 monDevice = device;
             }
         }
 
-        //APPID c9afb749c4ce94e522e9668bae6be96c
+        //APPID c9afb749c4ce94e522e9668bae6be96c : Clé permettant d"interroger le site openweathermap
+        // La requête doit être comme ça :
         // http://api.openweathermap.org/data/2.5/weather?q=trets&appid=c9afb749c4ce94e522e9668bae6be96c
+        // Définition d'un client HTTP asynchrone
         AsyncHttpClient client = new AsyncHttpClient();
+        // Récupération de la météo à Trets
         client.get("http://api.openweathermap.org/data/2.5/weather?q=trets&appid=c9afb749c4ce94e522e9668bae6be96c&units=metric", new TextHttpResponseHandler() {
 
             @Override
             public void onStart() {
-            // called before request is started
+                Log.d(TAG, "Appel pour météo Trets");
             }
 
 
             @Override
             public void onSuccess(int statusCode, Header[] headers, String response) {
-// called when response HTTP status is "200 OK"
-                Gson gson = new GsonBuilder().create();
-                Weathermap weathermap = gson.fromJson(response, Weathermap.class);
+                // Création d'un outil permettant de lire la réponse Json
+                Gson gsonBuilder = new GsonBuilder().create();
+
+                // Toutes les classes "Météo" qui représentent la météo renvoyée en Json par le site ont été générées sur le site : http://www.jsonschema2pojo.org/
+                // en passant la réponse suivante :
+                /*
+                {
+                    "coord": {
+                    "lon": 5.69,
+                            "lat": 43.45
+                },
+                    "weather": [
+                    {
+                        "id": 801,
+                            "main": "Clouds",
+                            "description": "few clouds",
+                            "icon": "02d"
+                    }
+  ],
+                    "base": "stations",
+                        "main": {
+                    "temp": 15,
+                            "pressure": 1031,
+                            "humidity": 62,
+                            "temp_min": 14,
+                            "temp_max": 16
+                },
+                    "visibility": 10000,
+                        "wind": {
+                    "speed": 3.6,
+                            "deg": 240
+                },
+                    "clouds": {
+                    "all": 20
+                },
+                    "dt": 1551025800,
+                        "sys": {
+                    "type": 1,
+                            "id": 6512,
+                            "message": 0.0036,
+                            "country": "FR",
+                            "sunrise": 1550989281,
+                            "sunset": 1551028802
+                },
+                    "id": 6453664,
+                        "name": "Trets",
+                        "cod": 200
+                }
+                */
+
+
+                // Tout est chargé dans un objet Weathermap
+                Weathermap weathermap = gsonBuilder.fromJson(response, Weathermap.class);
+
+                // La temprérature est loguée
                 Log.d(TAG, "La température à Trets est de : " + weathermap.getMain().getTemp());
+                temperature.setText(weathermap.getMain().getTemp().toString() + "°");
 
-                descriptionTemps = weathermap.getWeather().get(0).getDescription();// on définit la variable descriptionTemps
+                // On récupère le description du temps qu'il fait
+                descriptionTemps = weathermap.getWeather().get(0).getIcon();
+                Log.d(TAG, "Temps : " + weathermap.getWeather().get(0).getIcon());
 
-                switch (descriptionTemps) {
-                    case "clear sky": meteoImage.setImageResource(R.drawable.i01d);
-                        break;
-                    case "few clouds": meteoImage.setImageResource(R.drawable.i02d);
-                        break;
-                    case "scattered clouds": meteoImage.setImageResource(R.drawable.i03d);
-                        break;
-                    case "broken clouds": meteoImage.setImageResource(R.drawable.i04d);
-                        break;
-                    case "shower rain": meteoImage.setImageResource(R.drawable.i09d);
-                        break;
-                    case "rain": meteoImage.setImageResource(R.drawable.i10d);
-                        break;
-                    case "thunderstorm": meteoImage.setImageResource(R.drawable.i11d);
-                        break;
-                    case "snow": meteoImage.setImageResource(R.drawable.i13d);
-                        break;
-                    case "mist": meteoImage.setImageResource(R.drawable.i50d);
-                        break;
-                } // on a définit tout les cas possibles de météo
+                // Selon le temps, on affiche un image différente
+                afficherImageMeteo(meteoImage);
             }
 
             @Override
             public void onFailure(int statusCode, Header[] headers, String errorResponse, Throwable e) {
-// called when response HTTP status is "4XX" (eg. 401, 403, 404)
+                // Si la connexion ne fonctionne pas, on log
                 Log.d(TAG, "BUG");
             }
 
             @Override
             public void onRetry(int retryNo) {
-// called when request is retried
+                // non défini
             }
         });
+        // fin de l'appel au site Météo
 
+        // Création d'une classe gérant la connexion BT
         mBluetoothConnection = new BluetoothConnectionService(MainActivity.this);
-
-        Log.d(TAG, "startBTConnection: Initializing RFCOM Bluetooth Connection.");
+        Log.d(TAG, "startBTConnection: Initialisation de la connexion.");
+        //Démérrage d'un thread client
         mBluetoothConnection.startClient(monDevice, MY_UUID_INSECURE);
 
-
-        btnVerrouiller = findViewById(R.id.btnVerrouiller);
-        btnDeverrouiller = findViewById(R.id.btnDeverrouiller);
-
+        // Définition d'un listener sur le bouton
         btnVerrouiller.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                // On met 0 dans un tableau de bytes
                 byte[] bytes = VERROUILLER.getBytes(Charset.defaultCharset());
+                // On envoie le tableau à l'Arduino
                 mBluetoothConnection.write(bytes);
-                monImage.setImageResource(R.drawable.chatbloque);
-                monText.setText(BluetoothConnectionService.lieuChat);
-                switch (descriptionTemps) {
-                    case "clear sky": meteoImage.setImageResource(R.drawable.i01d);
-                        break;
-                    case "few clouds": meteoImage.setImageResource(R.drawable.i02d);
-                        break;
-                    case "scattered clouds": meteoImage.setImageResource(R.drawable.i03d);
-                        break;
-                    case "broken clouds": meteoImage.setImageResource(R.drawable.i04d);
-                        break;
-                    case "shower rain": meteoImage.setImageResource(R.drawable.i09d);
-                        break;
-                    case "rain": meteoImage.setImageResource(R.drawable.i10d);
-                        break;
-                    case "thunderstorm": meteoImage.setImageResource(R.drawable.i11d);
-                        break;
-                    case "snow": meteoImage.setImageResource(R.drawable.i13d);
-                        break;
-                    case "mist": meteoImage.setImageResource(R.drawable.i50d);
-                        break;
-                }
-
-
+                // On affiche l'image de la chatière bloquée
+                chatiere.setImageResource(R.drawable.chatbloque);
+                // On refresh a position du chat
+                positionChat.setText(BluetoothConnectionService.lieuChat);
+                // On refresh l'image météo
+                afficherImageMeteo(meteoImage);
             }
         });
 
+        // Définition d'un listener sur le bouton
         btnDeverrouiller.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                // On met 0 dans un tableau de bytes
                 byte[] bytes = DEVERROUILLER.getBytes(Charset.defaultCharset());
+                // On envoie le tableau à l'Arduino
                 mBluetoothConnection.write(bytes);
-                monImage.setImageResource(R.drawable.chatiere);
-                monText.setText(BluetoothConnectionService.lieuChat);
-                switch (descriptionTemps) {
-                    case "clear sky": meteoImage.setImageResource(R.drawable.i01d);
-                        break;
-                    case "few clouds": meteoImage.setImageResource(R.drawable.i02d);
-                        break;
-                    case "scattered clouds": meteoImage.setImageResource(R.drawable.i03d);
-                        break;
-                    case "broken clouds": meteoImage.setImageResource(R.drawable.i04d);
-                        break;
-                    case "shower rain": meteoImage.setImageResource(R.drawable.i09d);
-                        break;
-                    case "rain": meteoImage.setImageResource(R.drawable.i10d);
-                        break;
-                    case "thunderstorm": meteoImage.setImageResource(R.drawable.i11d);
-                        break;
-                    case "snow": meteoImage.setImageResource(R.drawable.i13d);
-                        break;
-                    case "mist": meteoImage.setImageResource(R.drawable.i50d);
-                        break;
-                }
+                // On affiche l'image de la chatière débloquée
+                chatiere.setImageResource(R.drawable.chatiere);
+                // On refresh la position du chat
+                positionChat.setText(BluetoothConnectionService.lieuChat);
+                // On refresh l'image météo
+                afficherImageMeteo(meteoImage);
             }
         });
 
+        positionChat.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // On refresh la position du chat
+                positionChat.setText(BluetoothConnectionService.lieuChat);
+                afficherImageMeteo(meteoImage);
+            }
+        });
 
     }
-// l'appareil en question n'a pas le bluetooth
+
+    // Cette méthode regarde si l'appreil à un module BT
+    // Si non l'application s'arrête
+    // Si oui, si le BT n'est pas activé, il l'est
     public void enableBT() {
         if (mBluetoothAdapter == null) {
-            Log.d(TAG, "enableDisableBT: Does not have BT capabilities.");
+            Log.d(TAG, "enableBT: Pas de module BT sur l'appareil");
             this.finish();
             System.exit(0);
         }
         // l'appareil en question a pas le bluetooth
         if (!mBluetoothAdapter.isEnabled()) {
-            Log.d(TAG, "enableDisableBT: enabling BT.");
+            Log.d(TAG, "enableBT: Activation BT.");
             Intent enableBTIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivity(enableBTIntent);
-
-            //IntentFilter BTIntent = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
-
         }
+    }
+
+    // En fonction du temps, change l'image de la météo
+    public void afficherImageMeteo(ImageView meteoImage) {
+        switch (descriptionTemps) {
+            case "01n":
+                meteoImage.setImageResource(R.drawable.i01d);
+                break;
+            case "02n":
+                meteoImage.setImageResource(R.drawable.i02d);
+                break;
+            case "03n":
+                meteoImage.setImageResource(R.drawable.i03d);
+                break;
+            case "04n":
+                meteoImage.setImageResource(R.drawable.i04d);
+                break;
+            case "09n":
+                meteoImage.setImageResource(R.drawable.i09d);
+                break;
+            case "10n":
+                meteoImage.setImageResource(R.drawable.i10d);
+                break;
+            case "11n":
+                meteoImage.setImageResource(R.drawable.i11d);
+                break;
+            case "13n":
+                meteoImage.setImageResource(R.drawable.i13d);
+                break;
+            case "50n":
+                meteoImage.setImageResource(R.drawable.i50d);
+                break;
+        } // on a définit tout les cas possibles de météo
     }
 }
